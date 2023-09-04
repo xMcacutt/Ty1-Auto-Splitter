@@ -110,6 +110,8 @@ startup
 {
     vars.crashed = false;
 
+    vars.finished = false;
+
     // Used for timing the length of the autosave.
     vars.stopwatch1 = new Stopwatch(); 
     vars.save_time = 0;
@@ -322,6 +324,9 @@ update
         vars.crashed = false;
     } 
 
+    if (timer.CurrentPhase == TimerPhase.Ended) vars.finished = true;
+    else if (timer.CurrentPhase == TimerPhase.Running) vars.finished = false;
+
     // Gets collectible states on level entry.
     if (current.loading != 0 && old.loading == 1) 
     {
@@ -348,7 +353,6 @@ update
     if (current.autosave_x < -210f && old.autosave_x > -210f) {
         vars.stopwatch1.Stop();
         vars.save_time = vars.stopwatch1.ElapsedMilliseconds;
-        print(vars.save_time.ToString());
         
         // Starting second stopwatch.
         vars.stopwatch2.Restart();
@@ -436,20 +440,6 @@ split
         if(settings["All Rainbow Scales"]) return true;
         if(current.opal_count == 300 && settings["All Opals"]) return true;
     }
-
-    // Rangs
-    if (current.got_second > old.got_second && settings["Got Second Rang"]) return true;
-    if (current.got_frosty > old.got_frosty && settings["Got Frostyrang"]) return true;
-    if (current.got_flame > old.got_flame && settings["Got Flamerang"]) return true;
-    if (current.got_kaboom > old.got_kaboom && settings["Got Kaboomerang"]) return true;
-    if (current.got_doom > old.got_doom && settings["Got Doomerang"]) return true;
-    if (current.got_mega > old.got_mega && settings["Got Megarang"]) return true;
-    if (current.got_zoom > old.got_zoom && settings["Got Zoomerang"]) return true;
-    if (current.got_infra > old.got_infra && settings["Got Infrarang"]) return true;
-    if (current.got_zappy > old.got_zappy && settings["Got Zappyrang"]) return true;
-    if (current.got_aqua > old.got_aqua && settings["Got Aquarang"]) return true;
-    if (current.got_multi > old.got_multi && settings["Got Multirang"]) return true;
-    if (current.got_chrono > old.got_chrono && settings["Got Chronorang"]) return true;
 
     // Cogs
     if (current.cog_count != old.cog_count)
@@ -556,6 +546,23 @@ split
         }
     }
 
+        // Rangs
+    if(settings["Rangs"])
+    {
+        if (current.got_second > old.got_second && settings["Got Second Rang"]) return true;
+        if (current.got_frosty > old.got_frosty && settings["Got Frostyrang"]) return true;
+        if (current.got_flame > old.got_flame && settings["Got Flamerang"]) return true;
+        if (current.got_kaboom > old.got_kaboom && settings["Got Kaboomerang"]) return true;
+        if (current.got_doom > old.got_doom && settings["Got Doomerang"]) return true;
+        if (current.got_mega > old.got_mega && settings["Got Megarang"]) return true;
+        if (current.got_zoom > old.got_zoom && settings["Got Zoomerang"]) return true;
+        if (current.got_infra > old.got_infra && settings["Got Infrarang"]) return true;
+        if (current.got_zappy > old.got_zappy && settings["Got Zappyrang"]) return true;
+        if (current.got_aqua > old.got_aqua && settings["Got Aquarang"]) return true;
+        if (current.got_multi > old.got_multi && settings["Got Multirang"]) return true;
+        if (current.got_chrono > old.got_chrono && settings["Got Chronorang"]) return true;
+    }
+
     return false;
 
 }
@@ -595,8 +602,6 @@ gameTime
     }
 }
 
-
-
 onStart
 {
     // Prevents time removal on first load.
@@ -608,15 +613,24 @@ onStart
     FileInfo oldestFile = directory.GetFiles()
         .OrderBy(file => file.LastWriteTime)
         .FirstOrDefault();
-    if(Directory.GetFiles("./Components/TyLogs").Count() >= 1000)
+    if(Directory.GetFiles("./Components/TyLogs").Count() >= 250)
     {
         oldestFile.Delete();
     }
     DateTime currentTime = DateTime.UtcNow;
     long unixTime = ((DateTimeOffset)currentTime).ToUnixTimeSeconds();
-    var fs =  File.Create(Path.Combine("./Components/TyLogs/", unixTime.ToString() + ".txt"));
+    vars.log_path = Path.Combine("./Components/TyLogs/", unixTime.ToString() + ".txt");
+    var fs =  File.Create(vars.log_path);
     vars.log = new StreamWriter(fs);
     vars.log.WriteLine(DateTime.Now.ToString() + "\n");
+
+    int xhash = 0;
+    int number = (int)unixTime;
+    while (number != 0)
+    {
+        xhash += number % 10;
+        number /= 10;
+    }
 
     int fileCount = 0;
     string moduleDirectory = System.IO.Path.GetDirectoryName(modules.First().FileName);
@@ -651,6 +665,12 @@ onStart
         }
     }
     vars.log.WriteLine("\n#" + modules.First().ModuleMemorySize * fileCount + "#");
+    number = modules.First().ModuleMemorySize * fileCount;
+    while (number != 0)
+    {
+        xhash += number % 10;
+        number /= 10;
+    }
 
     string[] filesToCheck = {
             "Data_PC.rkv",
@@ -666,6 +686,12 @@ onStart
         {
             FileInfo fileInfo = new FileInfo(filePath);
             vars.log.WriteLine("*" + fileInfo.Length + "*");
+            number = (int)fileInfo.Length;
+            while (number != 0)
+            {
+                xhash += number % 10;
+                number /= 10;
+            }
         }
     }
 
@@ -673,8 +699,11 @@ onStart
     {
         System.Security.Cryptography.SHA256 sha256 = System.Security.Cryptography.SHA256.Create();
         byte[] hashBytes = sha256.ComputeHash(stream);
-        vars.log.WriteLine(BitConverter.ToString(hashBytes).Replace("-", "").ToLower());
+        vars.log.WriteLine("@" + BitConverter.ToString(hashBytes).Replace("-", "").ToLower());
+        foreach(byte b in hashBytes) xhash += (int)b;
     }
+    
+    vars.log.WriteLine("$" + xhash);
     vars.log.WriteLine();
 }
 
@@ -690,6 +719,12 @@ onReset
     catch
     {
 
+    }
+
+    if(vars.finished)
+    {
+        if(!Directory.Exists("./Components/TyLogs/FinishedRuns")) Directory.CreateDirectory("./Components/TyLogs/FinishedRuns");
+        File.Copy(vars.log_path, Path.Combine("./Components/TyLogs/FinishedRuns", Path.GetFileName(vars.log_path)));
     }
 }
 
