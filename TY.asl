@@ -608,7 +608,7 @@ onStart
     FileInfo oldestFile = directory.GetFiles()
         .OrderBy(file => file.LastWriteTime)
         .FirstOrDefault();
-    if(Directory.GetFiles("./Components/TyLogs").Count() >= 50)
+    if(Directory.GetFiles("./Components/TyLogs").Count() >= 1000)
     {
         oldestFile.Delete();
     }
