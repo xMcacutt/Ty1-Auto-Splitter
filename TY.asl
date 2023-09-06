@@ -25,6 +25,7 @@ state("TY", "V1.44")
     byte completion:  0x288730, 0xC; // % based
     byte final_tali:  0x288730, 0xAC8; // Final talisman state in save data
     byte level:       0x288730, 0xAA4; // Level index (Z,A,B,C,D,E | 1-4 -> Z1 = 0, E4 -> 23)
+    byte prev_level:  0x288730, 0xAA8;   
     byte menu_index:  0x286640; // Index of option selected on main menu
     int menu_loaded:  0x285B94; // 0 if main menu not yet loaded (used for crash handling)
     byte save_index:  0x28E6C4; // Save slot index
@@ -57,6 +58,7 @@ state("Mul-Ty-Player", "V1.44") // Different process name for MTP.
     byte completion:  0x288730, 0xC;
     byte final_tali:  0x288730, 0xAC8;
     byte level:       0x288730, 0xAA4;
+    byte prev_level:  0x288730, 0xAA8;
     byte menu_index:  0x286640;
     int menu_loaded:  0x285B94;
     byte save_index:  0x28E6C4;
@@ -88,6 +90,7 @@ state("TY", "V1.11") // Old Patch.
     byte completion:  0x278230, 0xC;
     byte final_tali:  0x278230, 0xAC8;
     byte level:       0x278230, 0xAA4;
+    byte prev_level:  0x278230, 0xAA8;
     byte menu_index:  0x2741D0;
     int menu_loaded:  0x2737A4;
     byte save_index:  0x280950;
@@ -593,9 +596,12 @@ exit
 
 gameTime
 {
-    // Removes autosave time from timer during a load if autosave blocking occurred.
-    if (current.loading == 1 && old.loading == 0 && vars.save_time != 0)
+    // This is disgusting but it is the only way I could think of to prevent removal of autosave from hub 2 levels any%
+    if ((current.prev_level != 0 || (current.level == 0 && current.prev_level == 0))
+        && (current.level != old.level || old.prev_level == 24 && current.prev_level != 24)
+        && vars.save_time != 0)
     {
+        vars.log.WriteLine(current.prev_level + " " + current.level);
         vars.log.WriteLine(vars.save_time + "ms Autosave Removed");
         timer.SetGameTime(timer.CurrentTime.GameTime - TimeSpan.FromMilliseconds(vars.save_time));
         vars.save_time = 0;
@@ -622,7 +628,7 @@ onStart
     vars.log_path = Path.Combine("./Components/TyLogs/", unixTime.ToString() + ".txt");
     var fs =  File.Create(vars.log_path);
     vars.log = new StreamWriter(fs);
-    vars.log.WriteLine(DateTime.Now.ToString() + "\n");
+    vars.log.WriteLine(unixTime + "\n");
 
     int xhash = 0;
     int number = (int)unixTime;
