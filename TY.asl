@@ -171,7 +171,8 @@ startup
         {4, "Two Up"}, {5, "Walk in the Park"}, {6, "Ship Rex"}, {7, "Bull's Pen"}, 
         {8, "Bridge on the River Ty"}, {9, "Snow Worries"}, {10, "Outback Safari"}, {19, "Crikey's Cove"}, 
         {12, "Lyre, Lyre Pants on Fire"}, {13, "Beyond the Black Stump"}, {14, "Rex Marks the Spot"}, {15, "Fluffy's Fjord"}, 
-        {20, "Cass' Pass"}, {17, "Cass' Crest"}, {23, "Final Battle"}, {16, "Credits"}
+        {20, "Cass' Pass"}, {17, "Cass' Crest"}, {23, "Final Battle"}, {16, "Credits"},
+        {21, "Bonus World Day"}, {22, "Bonus World Night"}
     };
     vars.level_codes = new Dictionary<int, string>
     {
@@ -549,7 +550,7 @@ split
         }
     }
 
-        // Rangs
+     // Rangs
     if(settings["Rangs"])
     {
         if (current.got_second > old.got_second && settings["Got Second Rang"]) return true;
